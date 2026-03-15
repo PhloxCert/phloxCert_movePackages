@@ -1,0 +1,10 @@
+# Move package artifacts
+/build
+
+# Lock files
+*.lock
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+*.swp

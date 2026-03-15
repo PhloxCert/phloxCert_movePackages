@@ -1,11 +1,7 @@
 module register_contract::LocalRegistry {
-    // Table si trova nel framework Iota, non in std
+    // Table is in the Iota framework
     use iota::table::{Self, Table};
-    use iota::tx_context::{Self, TxContext}; // Necessario per creare ID
-    use iota::transfer;
-    
-    // ma se vuoi essere esplicito, importa solo ciò che ti serve senza Self
-    use std::option::Option;
+    use iota::tx_context::TxContext; // Necessary for creating IDs
 
     public struct User has store, copy, drop {
         role: u8,       
