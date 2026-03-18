@@ -1,43 +1,86 @@
 module register_contract::LocalRegistry {
-    // Table is in the Iota framework
     use iota::table::{Self, Table};
-    use iota::tx_context::TxContext; // Necessary for creating IDs
+    use iota::tx_context::{TxContext};
+    use std::string::{String};
+
+    // roles
+    const ROLE_LOCAL_BUSINESS: u8 = 1;
+    const ROLE_AUTHORIZED_TECHNICIAN: u8 = 2;
+
+    const EUserAlreadyRegistered: u64 = 1;
+
+    public struct BusinessData has store, copy, drop {
+        address: String,
+        vat_number: String,
+    }
+
+    public struct TechnicianData has store, copy, drop {
+        license_number: String,
+        specialization: String,
+    }
 
     public struct User has store, copy, drop {
-        role: u8,       
-        name: vector<u8>,
+        role: u8,
+        name: String,
+
+        business_info: std::option::Option<BusinessData>,
+        technician_info: std::option::Option<TechnicianData>,
     }
 
-    // Aggiunta l'abilità 'key' e l'ID per renderlo un oggetto Iota
-    public struct Registry has key, store {
-        id: UID, 
-        users: Table<vector<u8>, User>, 
+    public struct Registry has key {
+        id: UID,
+        users: Table<address, User>,
     }
 
-    // Questa funzione viene eseguita UNA SOLA VOLTA al momento del publish
     fun init(ctx: &mut TxContext) {
         let registry = Registry {
             id: object::new(ctx),
             users: table::new(ctx),
         };
-        // Rendiamo il Registry un "Shared Object" così chiunque può leggerlo
-        transfer::share_object(registry);
-    }
-    #[test_only]
-    public fun init_for_testing(ctx: &mut TxContext) {
-        init(ctx)
+        iota::transfer::share_object(registry);
     }
 
-    public fun add_user(registry: &mut Registry, address: vector<u8>, name: vector<u8>, role: u8) {
-        table::add(&mut registry.users, address, User { role, name });
+    public fun register_business(
+        registry: &mut Registry,
+        name: String,
+        address: String,
+        vat: String,
+        ctx: &mut TxContext
+    ) {
+        let sender = iota::tx_context::sender(ctx);
+        assert!(!table::contains(&registry.users, sender), EUserAlreadyRegistered);
+
+        let business_info = BusinessData { address, vat_number: vat};
+        let user = User {
+            role: ROLE_LOCAL_BUSINESS,
+            name,
+            business_info: std::option::some(business_info),
+            technician_info: std::option::none(),
+        };
+        table::add(&mut registry.users, sender, user);
     }
 
-    public fun get_user(registry: &Registry, address: vector<u8>): Option<User> {
-        if (table::contains(&registry.users, address)) {
-            // Option::some è disponibile implicitamente o tramite std::option
-            std::option::some(*table::borrow(&registry.users, address))
-        } else {
-            std::option::none()
-        }
+    public fun register_technician(
+        registry: &mut Registry,
+        name: String,
+        license: String,
+        spec: String,
+        ctx: &mut TxContext
+    ) {
+        let sender = iota::tx_context::sender(ctx);
+        assert!(!table::contains(&registry.users, sender), EUserAlreadyRegistered);
+
+        let technician_info = TechnicianData { license_number: license, specialization: spec };
+        let user = User {
+            role: ROLE_AUTHORIZED_TECHNICIAN,
+            name,
+            business_info: std::option::none(),
+            technician_info: std::option::some(technician_info),
+        };
+        table::add(&mut registry.users, sender, user);
+    }
+    public fun get_user_data(registry: &Registry, user_address: address): &User {
+        assert!(table::contains(&registry.users, user_address), 0); 
+        table::borrow(&registry.users, user_address)
     }
 }
