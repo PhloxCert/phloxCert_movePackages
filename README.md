@@ -21,12 +21,10 @@ iota move build
 
 ### 2) Test
 ```bash
-iota client publish --gas-budget 1000000
+iota client publish --gas-budget 20000000
 ```
 
 ---
 
 ## 🧩 Notes
-
-- The package uses `Move.toml` for configuration.
 - The contract IDs used by frontend/backend must match the deployed package and registry object IDs.
